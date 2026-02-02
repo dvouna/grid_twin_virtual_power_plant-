@@ -1,0 +1,83 @@
+import time
+from influxdb_client import InfluxDBClient, Point
+from influxdb_client.client.write_api import SYNCHRONOUS
+
+# --- CONFIGURATION ---
+INFLUX_URL = "http://localhost:8086"
+INFLUX_TOKEN = "smg!indb25"
+INFLUX_ORG = "myorg"
+INFLUX_BUCKET = "energy"
+
+# --- BATTERY SPECS ---
+MAX_CAPACITY_MWH = 100.0  # Total size of your "Virtual Megapack"
+current_soc_mwh = 50.0    # Start at 50% charge
+charge_efficiency = 0.9   # 10% loss during charging
+
+def run_arbitrage_trader(): 
+    global current_soc_mwh
+    client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
+    query_api = client.query_api()
+    write_api = client.write_api(write_options=SYNCHRONOUS)
+
+    print("💰 Arbitrage Trader is active. Optimization engine running...")
+
+    try:
+        while True:
+            # 1. Pull the latest ML Prediction
+            query = f'from(bucket: "{INFLUX_BUCKET}") \
+                      |> range(start: -2m) \
+                      |> filter(fn: (r) => r["_measurement"] == "grid_status") \
+                      |> last()'
+            
+            tables = query_api.query(query)
+            predicted_change = 0.0
+            
+            for table in tables:
+                for record in table.records:
+                    if record.get_field() == "ramp_rate":
+                        predicted_change = record.get_value()
+
+            # 2. Trading Decision Logic
+            trade_action = "HOLD"
+            trade_volume_mw = 0.0
+            profit_loss = 0.0
+            
+            # --- BUY (Charging during surplus) ---
+            if predicted_change > 40 and current_soc_mwh < (MAX_CAPACITY_MWH * 0.9):
+                trade_action = "BUY"
+                trade_volume_mw = 20.0 # Charging at 20MW rate
+                # We buy at a low "surplus" price ($10/MWh)
+                cost = (trade_volume_mw / 60) * 10.0 
+                current_soc_mwh += (trade_volume_mw / 60) * charge_efficiency
+                profit_loss = -cost # Initial outlay
+
+            # --- SELL (Discharging during shortage) ---
+            elif predicted_change < -40 and current_soc_mwh > (MAX_CAPACITY_MWH * 0.1):
+                trade_action = "SELL"
+                trade_volume_mw = 20.0 # Discharging at 20MW rate
+                # We sell at a high "shortage" price ($150/MWh)
+                revenue = (trade_volume_mw / 60) * 150.0 
+                current_soc_mwh -= (trade_volume_mw / 60)
+                profit_loss = revenue
+
+            # 3. Log Trade to InfluxDB
+            point = Point("trading_log") \
+                .field("soc_mwh", current_soc_mwh) \
+                .field("trade_volume", trade_volume_mw) \
+                .field("realized_pnl", profit_loss) \
+                .tag("trade_action", trade_action)
+            
+            write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=point)
+
+            if trade_action != "HOLD":
+                print(f"📉 [TRADE] {trade_action} {trade_volume_mw}MW | SoC: {current_soc_mwh:.2f}MWh")
+
+            time.sleep(5) # Run trading cycle every 5 seconds
+
+    except Exception as e:
+        print(f"Trader Error: {e}")
+    finally:
+        client.close()
+
+if __name__ == "__main__":
+    run_arbitrage_trader()
