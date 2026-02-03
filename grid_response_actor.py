@@ -14,20 +14,20 @@ BATTERY_DISCHARGE_RATE = 40.0
 
 # --- NEW FINANCIAL CONSTANTS ---
 # Prices are usually per MWh, so we divide by 60 for 1-minute intervals
-SPOT_PRICE_PER_MWH = 50.0      # Normal market rate
-PENALTY_RATE_PER_MWH = 250.0   # Penalty for unmitigated ramps
-GAS_PEAKER_OP_COST = 80.0      # Fuel + Maintenance cost
+SPOT_PRICE_PER_kWH = 0.05      # Normal market rate
+PENALTY_RATE_PER_kWH = 0.250   # Penalty for unmitigated ramps
+GAS_PEAKER_OP_COST = 0.080      # Fuel + Maintenance cost
 
 def calculate_finances(ramp_rate, p_res, action):
     # 1. Potential Penalty (If we did nothing)
     # We only care about penalties if the ramp is outside safe limits
     potential_penalty = 0.0
-    if abs(ramp_rate) > 0.020: # Our threshold for "Instability"
+    if abs(ramp_rate) > 20: # Our threshold for "Instability"
         # MW * (1/60 hours) * Price
-        potential_penalty = abs(ramp_rate) * (1/60) * PENALTY_RATE_PER_MWH 
+        potential_penalty = abs(ramp_rate) * PENALTY_RATE_PER_kWH 
 
     # 2. Mitigation Cost (The cost of our prescribed action)
-    mitigation_cost = p_res * (1/60) * GAS_PEAKER_OP_COST
+    mitigation_cost = p_res * GAS_PEAKER_OP_COST
 
     # 3. Net Savings
     # If we mitigated a penalty, we saved money. 
@@ -63,12 +63,12 @@ def run_simulator():
                         current_data["action"] = record.values["recommended_action"]
 
             if not current_data:
-                time.sleep(1)
+                time.sleep(10)
                 continue
 
             action = current_data.get("action", "MONITORING")
-            actual_power = current_data.get("Net_Load_kW", 0) / 1000
-            predicted_change = current_data.get("Predicted_30min_Change", 0) / 1000
+            actual_power = current_data.get("Net_Load_kW", 0)
+            predicted_change = current_data.get("Predicted_30min_Change", 0)
 
             # 2. Determine Response Power (P_res)
             p_res = 0.0
@@ -95,7 +95,7 @@ def run_simulator():
             if p_res > 0:
                 print(f"⚡ [ACTION] {action}: Injecting {p_res} MW. New Grid Level: {p_compensated:.2f}")
 
-            time.sleep(5) # Check every second
+            time.sleep(10) # Check every second
 
     except Exception as e:
         print(f"Error: {e}")

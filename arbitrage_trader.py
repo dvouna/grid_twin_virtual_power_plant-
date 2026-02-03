@@ -9,12 +9,12 @@ INFLUX_ORG = "myorg"
 INFLUX_BUCKET = "energy"
 
 # --- BATTERY SPECS ---
-MAX_CAPACITY_MWH = 100.0  # Total size of your "Virtual Megapack"
-current_soc_mwh = 50.0    # Start at 50% charge
+MAX_CAPACITY_kWH = 100.0  # Total size of your "Virtual Megapack"
+current_soc_kWH = 50.0    # Start at 50% charge
 charge_efficiency = 0.9   # 10% loss during charging
 
 def run_arbitrage_trader(): 
-    global current_soc_mwh
+    global current_soc_kWH
     client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
     query_api = client.query_api()
     write_api = client.write_api(write_options=SYNCHRONOUS)
@@ -26,7 +26,7 @@ def run_arbitrage_trader():
             # 1. Pull the latest ML Prediction
             query = f'from(bucket: "{INFLUX_BUCKET}") \
                       |> range(start: -2m) \
-                      |> filter(fn: (r) => r["_measurement"] == "grid_status") \
+                      |> filter(fn: (r) => r["_measurement"] == "ml_predictions") \
                       |> last()'
             
             tables = query_api.query(query)
@@ -34,45 +34,45 @@ def run_arbitrage_trader():
             
             for table in tables:
                 for record in table.records:
-                    if record.get_field() == "ramp_rate":
+                    if record.get_field() == "Predicted_30min_Change":
                         predicted_change = record.get_value()
 
             # 2. Trading Decision Logic
             trade_action = "HOLD"
-            trade_volume_mw = 0.0
+            trade_volume_kw = 0.0
             profit_loss = 0.0
             
             # --- BUY (Charging during surplus) ---
-            if predicted_change > 40 and current_soc_mwh < (MAX_CAPACITY_MWH * 0.9):
+            if predicted_change > 20 and current_soc_kWH < (MAX_CAPACITY_kWH * 0.9):
                 trade_action = "BUY"
-                trade_volume_mw = 20.0 # Charging at 20MW rate
+                trade_volume_kw = 0.020 # Charging at 20MW rate
                 # We buy at a low "surplus" price ($10/MWh)
-                cost = (trade_volume_mw / 60) * 10.0 
-                current_soc_mwh += (trade_volume_mw / 60) * charge_efficiency
+                cost = (trade_volume_kw) * 0.010 
+                current_soc_kWH += (trade_volume_kw) * charge_efficiency
                 profit_loss = -cost # Initial outlay
 
             # --- SELL (Discharging during shortage) ---
-            elif predicted_change < -40 and current_soc_mwh > (MAX_CAPACITY_MWH * 0.1):
+            elif predicted_change < -20 and current_soc_kWH > (MAX_CAPACITY_kWH * 0.1):
                 trade_action = "SELL"
-                trade_volume_mw = 20.0 # Discharging at 20MW rate
+                trade_volume_kw = 0.020 # Discharging at 20MW rate
                 # We sell at a high "shortage" price ($150/MWh)
-                revenue = (trade_volume_mw / 60) * 150.0 
-                current_soc_mwh -= (trade_volume_mw / 60)
+                revenue = (trade_volume_kw) * 0.150 
+                current_soc_kWH -= (trade_volume_kw)
                 profit_loss = revenue
 
             # 3. Log Trade to InfluxDB
             point = Point("trading_log") \
-                .field("soc_mwh", current_soc_mwh) \
-                .field("trade_volume", trade_volume_mw) \
+                .field("soc_kwh", current_soc_kWH) \
+                .field("trade_volume", trade_volume_kw) \
                 .field("realized_pnl", profit_loss) \
                 .tag("trade_action", trade_action)
             
             write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=point)
 
             if trade_action != "HOLD":
-                print(f"📉 [TRADE] {trade_action} {trade_volume_mw}MW | SoC: {current_soc_mwh:.2f}MWh")
+                print(f"📉 [TRADE] {trade_action} {trade_volume_kw }kW | SoC: {current_soc_kWH:.2f}kWh")
 
-            time.sleep(5) # Run trading cycle every 5 seconds
+            time.sleep(10) # Run trading cycle every 5 seconds
 
     except Exception as e:
         print(f"Trader Error: {e}")
