@@ -11,7 +11,7 @@
 
 SmartGrid‑AI is an intelligent virtual power plant (VPP) platform that transforms raw grid telemetry into real‑time operational decisions. It blends streaming ingestion, stateful feature engineering, predictive modeling, and autonomous control agents to stabilize the grid and optimize economic outcomes.
 
-## 🌐 A. Core Capabilities
+## A. Core Capabilities
 
 ### 1. Real-Time Grid Intelligence
 
@@ -33,7 +33,7 @@ Hosted on an MCP server, the SmartGrid‑AI agent can:
 - **Grid Response Actor**: Detects instability events and dispatches assets to maintain frequency and avoid penalties.
 - **Arbitrage Trader**: Executes charge/discharge cycles based on predicted price differentials.
 
-## 🧱 B. System Architecture
+## B. System Architecture
 
 ### 1. High-Level Flow
 
@@ -88,7 +88,7 @@ graph TD
     end
 ```
 
-## 🧠 C. Feature Engineering: The Stateful Intelligence Layer
+## C. Feature Engineering: The Stateful Intelligence Layer
 
 Real‑time grid data is noisy and insufficient on its own. The platform uses a stateful feature pipeline to transform raw telemetry into a rich predictive feature space.
 
@@ -119,7 +119,7 @@ Captures non‑linear system behavior:
 - Renewable Penetration Ratio: $\frac{Solar + Wind}{Gross Load}$
 - Net Load Gradient: Instantaneous rate of change.
 
-## 🛠 D. Technical Stack
+## D. Technical Stack
 
 | Layer | Technology |
 | :--- | :--- |
@@ -131,7 +131,7 @@ Captures non‑linear system behavior:
 | **Visualization** | Grafana |
 | **Virtualization** | Docker, Docker Compose, GitHub Actions |
 
-## 🚀 E. Getting Started
+## E. Getting Started
 
 ### 1. Prerequisites
 
@@ -164,7 +164,7 @@ src/vpp/
     └── mcp_server.py
 ```
 
-## ⚙️ F. Running the System
+## F. Running the System
 
 To run the modules correctly, ensure `src` is in your `PYTHONPATH`.
 
@@ -195,7 +195,7 @@ $env:PYTHONPATH="src"; python -m vpp.intelligence.producer
 $env:PYTHONPATH="src"; python -m vpp.intelligence.consumer
 ```
 
-## 🗺️ G. Future Roadmap
+## G. Future Roadmap
 
 - **Cloud Evolution**: Migration to AWS MSK for managed streaming and Lambda for serverless inference.
 - **Cybersecurity**: Implementation of False Data Injection Attack (FDIA) detection using predictive residuals.
