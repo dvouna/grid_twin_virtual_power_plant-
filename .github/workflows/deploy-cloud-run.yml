@@ -79,9 +79,14 @@ jobs:
           source: .
           timeout: '300s'
           flags: >
-            --memory=1Gi 
-            --cpu-boost 
-            --startup-probe=httpGet.path=/health,httpGet.port=8080,initialDelaySeconds=15,periodSeconds=10,failureThreshold=3 
+            --memory=1Gi
+            --cpu=1
+            --cpu-boost
+            --concurrency=10
+            --max-instances=5
+            --timeout=60s
+            --startup-probe=httpGet.path=/health,httpGet.port=8080,initialDelaySeconds=15,periodSeconds=10,failureThreshold=3
+            --liveness-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=30,failureThreshold=3
             --no-allow-unauthenticated
           secrets: |-
             INFLUX_CLOUD_URL=INFLUX_CLOUD_URL:latest
@@ -151,9 +156,15 @@ jobs:
           source: .
           timeout: '300s'
           flags: >
-            --memory=1Gi 
-            --cpu-boost 
-            --startup-probe=httpGet.path=/health,httpGet.port=8080,initialDelaySeconds=15,periodSeconds=10,failureThreshold=3 
+            --memory=1Gi
+            --cpu=1
+            --cpu-boost
+            --concurrency=10
+            --min-instances=1
+            --max-instances=20
+            --timeout=60s
+            --startup-probe=httpGet.path=/health,httpGet.port=8080,initialDelaySeconds=15,periodSeconds=10,failureThreshold=3
+            --liveness-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=30,failureThreshold=3
             --no-allow-unauthenticated
           secrets: |-
             INFLUX_CLOUD_URL=INFLUX_CLOUD_URL:latest

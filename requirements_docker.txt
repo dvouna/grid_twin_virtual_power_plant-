@@ -13,4 +13,3 @@ pytest-asyncio
 setuptools<81
 ruff
 starlette
-uvicorn

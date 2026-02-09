@@ -28,7 +28,6 @@ RUN useradd -m mcpuser
 # Ensure files are owned by the non-privileged user
 COPY --chown=mcpuser:mcpuser src/ ./src/
 COPY --chown=mcpuser:mcpuser models/ ./models/
-COPY --chown=mcpuser:mcpuser requirements_docker.txt .
 
 USER mcpuser
 

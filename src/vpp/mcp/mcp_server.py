@@ -11,18 +11,14 @@ from starlette.responses import PlainTextResponse
 # ---- INITIALIZATION ----
 mcp = FastMCP("GridIntelligence")
 
-# Health check function used by Starlette app
-async def heartbeat(request: Request) -> PlainTextResponse:
-    """Answers the Cloud Run Startup Probe."""
+@mcp.custom_route("/health", methods=["GET"])
+async def mcp_health_check(request: Request) -> PlainTextResponse:
+    """Health check endpoint for Cloud Run startup probes."""
     # Ensure model is ready before serving traffic
     if not model:
         log("Health check FAILED: Model not loaded")
         return PlainTextResponse("Model Not Loaded", status_code=503)
     return PlainTextResponse("OK", status_code=200)
-
-@mcp.custom_route("/health", methods=["GET"])
-async def mcp_health_check(request: Request) -> PlainTextResponse:
-    return await heartbeat(request)
 
 def log(message: str):
     """Utility to log to stderr to avoid corrupting stdio transport."""
@@ -42,18 +38,20 @@ ORG = os.getenv("INFLUX_CLOUD_ORG", "Energy Simulation")
 BUCKET = os.getenv("INFLUX_CLOUD_BUCKET", "energy")
 
 # File Paths (Absolute hooks)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# __file__ is /app/src/vpp/mcp/mcp_server.py
+# dirname 1: /app/src/vpp/mcp
+# dirname 2: /app/src/vpp
+# dirname 3: /app/src
+# dirname 4: /app
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 MODEL_PATH = os.path.join(BASE_DIR, "models", "xgboost_smart_ml.ubj")
 FEATURES_PATH = os.path.join(BASE_DIR, "models", "model_features.txt")
 
+log(f"Calculated BASE_DIR: {BASE_DIR}")
+log(f"Calculated MODEL_PATH: {MODEL_PATH}")
+
 # Debugging Info
 log(f"Current Working Directory: {os.getcwd()}")
-abs_models_dir = os.path.abspath("models")
-if os.path.exists(abs_models_dir):
-    log(f"Models directory found at {abs_models_dir}")
-    log(f"Directory contents: {os.listdir(abs_models_dir)}")
-else:
-    log(f"⚠ Warning: Models directory NOT FOUND at {abs_models_dir}")
 
 # Loading existing model
 model = None
@@ -291,22 +289,8 @@ if __name__ == "__main__":
     transport = os.getenv("MCP_TRANSPORT", "sse")
     
     if transport == "sse":
-        from starlette.applications import Starlette
-        from starlette.routing import Route
-        from starlette.responses import PlainTextResponse
-        import uvicorn
-
-        # 1. Get the FastMCP Starlette app
-        # FastMCP builds a Starlette app under the hood
-        app = mcp.get_app(transport="sse")
-
-        # 2. Explicitly add the route to the app
-        # This provides a more direct way to handle health checks
-        app.add_route("/health", heartbeat, methods=["GET"])
-
         log(f"🚀 Starting MCP Server on port {port} via SSE with /health check...")
-        
-        uvicorn.run(app, host="0.0.0.0", port=port)
+        mcp.run(transport="sse", host="0.0.0.0", port=port)
     else:
         # Standard input/output for local Claude Desktop use
         mcp.run(transport="stdio")
