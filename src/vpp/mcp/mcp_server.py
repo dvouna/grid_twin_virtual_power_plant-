@@ -27,9 +27,9 @@ model = xgb.Booster()
 abs_model_path = os.path.abspath(MODEL_PATH)
 if os.path.exists(abs_model_path):
     model.load_model(abs_model_path)
-    log(f"✓ Model loaded from {abs_model_path}")
+    log(f"Model loaded from {abs_model_path}")
 else:
-    log(f"⚠ Warning: Model not found at {abs_model_path}")
+    log(f"Warning: Model not found at {abs_model_path}")
 
 # Load expected feature columns from model training
 expected_features = None
@@ -136,7 +136,7 @@ def add_grid_observation(
     
     # log(f"DEBUG: Added obs. Buffer size: {buffer_size}")
     
-    status = f"✓ Observation added. Buffer: {buffer_size}/49. "
+    status = f"Observation added. Buffer: {buffer_size}/49. "
     if is_ready:
         status += "Feature store is PRIMED and ready for predictions."
     else:
@@ -156,19 +156,19 @@ def predict_grid_ramp() -> str:
     """
     if not feature_store.is_primed:
         buffer_size = len(feature_store.buffer)
-        return f"❌ Feature store not ready. Current buffer: {buffer_size}/49. Add {49 - buffer_size} more observations."
+        return f"Feature store not ready. Current buffer: {buffer_size}/49. Add {49 - buffer_size} more observations."
     
     # Get the engineered feature vector
     try:
         features = feature_store.get_inference_vector()
     except Exception as e:
-        log(f"❌ Error in get_inference_vector: {e}")
+        log(f" Error in get_inference_vector: {e}")
         import traceback
         log(traceback.format_exc())
         return f"Error: {e}"
     
     if features is None:
-        return "❌ Failed to generate feature vector. Check feature store state."
+        return "Failed to generate feature vector. Check feature store state."
     
     # Make prediction
     try:
@@ -176,7 +176,7 @@ def predict_grid_ramp() -> str:
         dmatrix = xgb.DMatrix(features, feature_names=expected_features)
         prediction = model.predict(dmatrix)[0]
     except Exception as e:
-        log(f"❌ Error during XGBoost prediction: {e}")
+        log(f" Error during XGBoost prediction: {e}")
         return f"Prediction Error: {e}"
     
     # Interpret results
@@ -244,15 +244,19 @@ def analyze_resilience():
 
 
 if __name__ == "__main__":
-    # Cloud Run requires an HTTP server listening on $PORT
+    # Cloud Run injects the PORT environment variable
     port = int(os.getenv("PORT", "8080"))
-    # Use SSE for cloud deployment, stdio for local debugging
     transport = os.getenv("MCP_TRANSPORT", "sse")
     
     if transport == "sse":
-        log(f"🚀 Starting MCP Server on port {port} via SSE...")
-        # Bind to 0.0.0.0 to ensure it's accessible within the container
-        mcp.run("sse", port=port, host="0.0.0.0")
+        log(f" Starting MCP Server on port {port} via SSE...")
+        # Force host to 0.0.0.0 so the container is reachable externally
+        # Some FastMCP versions prefer transport="sse" or transport="http"
+        mcp.run(
+            transport="sse", 
+            host="0.0.0.0", 
+            port=port
+        )
     else:
-        # For stdio, we must be absolutely silent on stdout
-        mcp.run("stdio")
+        # Standard input/output for local Claude Desktop use
+        mcp.run(transport="stdio")

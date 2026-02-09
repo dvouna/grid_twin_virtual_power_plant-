@@ -1,33 +1,34 @@
 FROM python:3.11-slim
 
-# Set environment variables
+# 1. Standardize Environment Variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app/src \
+    PYTHONPATH=/app \
     PORT=8080 \
-    # Explicitly set Model paths to MATCH default ENV vars in mcp_server.py
     MODEL_PATH=models/xgboost_smart_ml.ubj \
     FEATURES_PATH=models/model_features.txt
 
 WORKDIR /app
 
-# Install system dependencies
+# 2. Optimized System Dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     librdkafka-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
+# 3. Install Python Dependencies
 COPY requirements_docker.txt .
 RUN pip install --no-cache-dir -r requirements_docker.txt
 
-# Copy source code and models
-# COPY . . copies everything not in .dockerignore
+# 4. Copy Code (Ensure .dockerignore excludes __pycache__ and .git)
 COPY . .
 
-# Verification step (Optional but good for debugging build logs)
-RUN ls -la models/
+# 5. Security: Run as non-privileged user
+RUN useradd -m mcpuser
+USER mcpuser
 
 EXPOSE 8080
 
+# 6. Use 'exec' form for proper signal handling
+# This ensures Python handles the termination signal from Cloud Run
 CMD ["python", "-m", "vpp.mcp.mcp_server"]
