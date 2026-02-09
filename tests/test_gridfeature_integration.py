@@ -4,10 +4,10 @@ This directly tests the GridFeatureStore functionality
 """
 
 import sys
+import pytest
 from datetime import datetime, timedelta
 from vpp.core.GridFeatureStore import GridFeatureStore
 import xgboost as xgb
-import pandas as pd
 
 
 def generate_sample_observations(count=50):
@@ -45,7 +45,7 @@ def generate_sample_observations(count=50):
     return observations
 
 
-import pytest
+
 
 @pytest.mark.integration
 def test_gridfeaturestore_integration():
@@ -67,7 +67,7 @@ def test_gridfeaturestore_integration():
     # Test 2: Initialize feature store
     print("\n[2/5] Initializing GridFeatureStore...")
     feature_store = GridFeatureStore(window_size=49, expected_columns=expected_features)
-    print(f"✓ Feature store initialized")
+    print("✓ Feature store initialized")
     print(f"  - Buffer size: {len(feature_store.buffer)}/49")
     print(f"  - Is primed: {feature_store.is_primed}")
     
@@ -114,7 +114,7 @@ def test_gridfeaturestore_integration():
         direction = "UP" if prediction > 0 else "DOWN"
         magnitude = abs(prediction)
         
-        print(f"\n🔮 Prediction Result:")
+        print("\n🔮 Prediction Result:")
         print(f"  - Predicted Ramp: {prediction:.2f} kW {direction}")
         print(f"  - Magnitude: {magnitude:.2f} kW")
         
@@ -140,10 +140,10 @@ def test_gridfeaturestore_integration():
     
     # Summary
     print("\n📊 Summary:")
-    print(f"  - GridFeatureStore can be imported into mcp_server.py ✓")
+    print("  - GridFeatureStore can be imported into mcp_server.py ✓")
     print(f"  - Feature engineering produces {features.shape[1]} features ✓")
-    print(f"  - Compatible with XGBoost model format ✓")
-    print(f"  - Ready for MCP server integration ✓")
+    print("  - Compatible with XGBoost model format ✓")
+    print("  - Ready for MCP server integration ✓")
     
     # Test passes if we reach here without exceptions
 

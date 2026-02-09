@@ -3,11 +3,8 @@ Test client for GridIntelligence MCP Server
 Tests resources, tools, and prompts without requiring Node.js
 """
 
-import asyncio
 import sys
-from typing import Dict, Any
 import xgboost as xgb
-import pandas as pd
 
 
 class MockInfluxDBClient:
@@ -67,7 +64,7 @@ class MCPServerTester:
             return True
         except Exception as e:
             print(f"✗ Failed to load model: {e}")
-            print(f"  Note: This is expected if model file doesn't exist yet")
+            print("  Note: This is expected if model file doesn't exist yet")
             return False
     
     def test_resource_grid_status(self, use_mock=True):
@@ -83,7 +80,7 @@ class MCPServerTester:
                 import mcp_server
                 
                 # Patch the InfluxDBClient in the mcp_server module
-                original_client = None
+                
                 try:
                     # Import and call the function directly
                     with patch('vpp.mcp.mcp_server.InfluxDBClient', MockInfluxDBClient):

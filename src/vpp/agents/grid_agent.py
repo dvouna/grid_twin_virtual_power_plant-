@@ -8,7 +8,7 @@ from mcp.client.stdio import stdio_client
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(os.path.join(BASE_DIR, "src"))
 
-from vpp.agents.strategies.vpp_default_strategy import VPPDefaultStrategy
+from vpp.agents.strategies.vpp_default_strategy import VPPDefaultStrategy  # noqa: E402
 
 class GridAgent:
     """

@@ -1,5 +1,5 @@
 import xgboost as xgb
-import pandas as pd 
+import numpy as np
 
 class XGBInference:
     def __init__(self, model_path, feature_names):
@@ -35,20 +35,7 @@ class XGBInference:
 
 
 # ----- USING THE SCRIPT -----
-Feature_names = ['feature1', 'feature2', 'feature3'] 
-
-# Initialize the Inference class 
-inference = XGBInference(model_path='model.json', feature_names=feature_names) 
-
-# Load data 
-inf_data = pd.read_csv('data.csv') 
-
-# Make predictions 
-predictions = inference.predict(inf_data) 
-
-print(f"Predictions: {predictions}")
-
-Feature_names = [
+feature_names = [
     'Hour of Day', 'Day of Week', 'Is Weekend', 'Season', 'Month', 
     'Historical Electricity Load (kW)', 'Solar PV Output (kW)', 'Wind Power Output (kW)', 
     'Wind Speed (m/s)', 'Battery State of Charge (SOC) (%)', 'Renewable Forecast Error', 
@@ -99,4 +86,14 @@ Feature_names = [
     'Net Load_rw_mean', 'Net Load_rw_std', 'Net Load_rw_min', 'Net Load_rw_max', 'IsPeakHour', 
     'Temp_pkhr', 'IsSummer', 'IsWinter', 'Temp_x_Win', 'Temp_x_Sum', 'hr_sin', 'hr_cos', 'wk_sin', 
     'wk_cos', 'mo_sin', 'mo_cos', '4hr_load']
-        
+
+# Initialize the Inference class 
+inference = XGBInference(model_path='model.json', feature_names=feature_names) 
+
+# Load data 
+# inf_data = pd.read_csv('data.csv') 
+
+# Make predictions 
+# predictions = inference.predict(inf_data) 
+
+# print(f"Predictions: {predictions}")

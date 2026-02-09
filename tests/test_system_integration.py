@@ -1,11 +1,8 @@
 import sys
-import asyncio
 import pytest
 import os
-import json
 from datetime import datetime, timedelta
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+from mcp import StdioServerParameters
 
 # Define server parameters for testing
 # We use 'python -m vpp.mcp.mcp_server' and set transport to stdio

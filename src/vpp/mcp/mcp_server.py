@@ -1,7 +1,6 @@
 import os
 import sys
 import xgboost as xgb
-import pandas as pd
 from fastmcp import FastMCP
 from influxdb_client import InfluxDBClient
 from vpp.core.GridFeatureStore import GridFeatureStore
@@ -217,7 +216,7 @@ def get_feature_store_status() -> str:
     buffer_size = len(feature_store.buffer)
     is_ready = feature_store.is_primed
     
-    status = f"Feature Store Status:\n"
+    status = "Feature Store Status:\n"
     status += f"  Buffer Size: {buffer_size}/49\n"
     status += f"  Is Primed: {'✓ YES' if is_ready else '✗ NO'}\n"
     
@@ -229,7 +228,7 @@ def get_feature_store_status() -> str:
         # Show last observation if available
         if feature_store.buffer:
             last_obs = feature_store.buffer[-1]
-            status += f"\nLast Observation:\n"
+            status += "\nLast Observation:\n"
             status += f"  Timestamp: {last_obs.get('Timestamp', 'N/A')}\n"
             status += f"  Net Load: {last_obs.get('Net_Load', 'N/A')} kW\n"
             status += f"  Battery SOC: {last_obs.get('B_SOC', 'N/A')}%\n"
