@@ -11,13 +11,18 @@ from starlette.responses import PlainTextResponse
 # ---- INITIALIZATION ----
 mcp = FastMCP("GridIntelligence")
 
-@mcp.custom_route("/health", methods=["GET"])
-async def health_check(request: Request) -> PlainTextResponse:
+# Health check function used by Starlette app
+async def heartbeat(request: Request) -> PlainTextResponse:
     """Answers the Cloud Run Startup Probe."""
     # Ensure model is ready before serving traffic
     if not model:
+        log("Health check FAILED: Model not loaded")
         return PlainTextResponse("Model Not Loaded", status_code=503)
     return PlainTextResponse("OK", status_code=200)
+
+@mcp.custom_route("/health", methods=["GET"])
+async def mcp_health_check(request: Request) -> PlainTextResponse:
+    return await heartbeat(request)
 
 def log(message: str):
     """Utility to log to stderr to avoid corrupting stdio transport."""
@@ -286,14 +291,22 @@ if __name__ == "__main__":
     transport = os.getenv("MCP_TRANSPORT", "sse")
     
     if transport == "sse":
-        log(f" Starting MCP Server on port {port} via SSE...")
-        # Force host to 0.0.0.0 so the container is reachable externally
-        # Some FastMCP versions prefer transport="sse" or transport="http"
-        mcp.run(
-            transport="sse", 
-            host="0.0.0.0", 
-            port=port
-        )
+        from starlette.applications import Starlette
+        from starlette.routing import Route
+        from starlette.responses import PlainTextResponse
+        import uvicorn
+
+        # 1. Get the FastMCP Starlette app
+        # FastMCP builds a Starlette app under the hood
+        app = mcp.get_app(transport="sse")
+
+        # 2. Explicitly add the route to the app
+        # This provides a more direct way to handle health checks
+        app.add_route("/health", heartbeat, methods=["GET"])
+
+        log(f"🚀 Starting MCP Server on port {port} via SSE with /health check...")
+        
+        uvicorn.run(app, host="0.0.0.0", port=port)
     else:
         # Standard input/output for local Claude Desktop use
         mcp.run(transport="stdio")
