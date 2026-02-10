@@ -24,17 +24,17 @@ $run_args_array
  
   import pkg_resources
 ----------------------------- REMOTE BUILD OUTPUT ------------------------------
-starting build "55a34418-3417-431c-a672-b22fa38ee0f3"
+starting build "738ad50e-e9e0-4e83-8c78-3a0d18edf5b1"
 FETCHSOURCE
 From https://github.com/dvouna/grid_twin_virtual_power_plant-
- * branch            5d069755d48aa5708ac18494061fae9be868813b -> FETCH_HEAD
-HEAD is now at 5d06975 fix: resolve CI bandit scan with explicit file list
+ * branch            37d92a8b20051093f82a95d7c8a23d732ae36188 -> FETCH_HEAD
+HEAD is now at 37d92a8 fix: resolve all ruff linting errors and update line-length config
 GitCommit:
-5d069755d48aa5708ac18494061fae9be868813b
+37d92a8b20051093f82a95d7c8a23d732ae36188
 BUILD
 Starting Step #0 - "Build"
 Step #0 - "Build": Already have image (with digest): gcr.io/cloud-builders/docker
-Step #0 - "Build": invalid argument "europe-west1-docker.pkg.dev/igneous-study-486512-g4/cloud-run-source-deploy/grid_twin_virtual_power_plant-/continuous-deploy:5d069755d48aa5708ac18494061fae9be868813b" for "-t, --tag" flag: invalid reference format
+Step #0 - "Build": invalid argument "europe-west1-docker.pkg.dev/igneous-study-486512-g4/cloud-run-source-deploy/grid_twin_virtual_power_plant-/continuous-deploy:37d92a8b20051093f82a95d7c8a23d732ae36188" for "-t, --tag" flag: invalid reference format
 Step #0 - "Build": See 'docker build --help'.
 Finished Step #0 - "Build"
 ERROR
