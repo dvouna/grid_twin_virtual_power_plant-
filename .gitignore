@@ -113,7 +113,7 @@ models/test_scenarios.json
 diag_output*.txt
 mock_output*.txt
 verify_output*.txt
-bandit_report.json
+bandit_report*.json
 model_features_list*
 model_features_repr.txt
 model_features_utf8.txt
