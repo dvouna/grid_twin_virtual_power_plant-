@@ -1,13 +1,15 @@
-import xgboost as xgb
 import json
 import platform
-import pkg_resources
 from datetime import datetime
+
+import pkg_resources
+import xgboost as xgb
+
 
 def package_xgboost_model(model, model_name, random_search_results=None, additional_metadata=None):
     """
     Saves an XGBoost model and captures its environment/metadata into a JSON file.
-    
+
     Args:
         model: The trained XGBoost model (e.g., best_model).
         model_name: Base filename to save the model and metadata.
@@ -16,13 +18,17 @@ def package_xgboost_model(model, model_name, random_search_results=None, additio
     """
     # 1. Save model in native JSON format (highly portable)
     model.save_model(f"{model_name}.json")
-    
+
     # 2. Extract specific model info if results are provided
     results_info = {}
     if random_search_results:
         results_info = {
             "best_hyperparameters": {k: str(v) for k, v in random_search_results.best_params_.items()},
-            "best_score_rmse": float(-random_search_results.best_score_) if hasattr(random_search_results, 'best_score_') else None
+            "best_score_rmse": (
+                float(-random_search_results.best_score_)
+                if hasattr(random_search_results, 'best_score_')
+                else None
+            )
         }
 
     # 3. Capture Environment
@@ -32,7 +38,7 @@ def package_xgboost_model(model, model_name, random_search_results=None, additio
         "platform": platform.platform(),
         "installed_packages": [f"{d.project_name}=={d.version}" for d in pkg_resources.working_set]
     }
-    
+
     # 4. Combine into final package info
     package_details = {
         "model_summary": {
@@ -44,12 +50,12 @@ def package_xgboost_model(model, model_name, random_search_results=None, additio
         "environment": env_info,
         "metadata": additional_metadata or {}
     }
-    
+
     # 5. Save metadata to JSON
     metadata_filename = f"{model_name}_metadata.json"
     with open(metadata_filename, "w") as f:
         json.dump(package_details, f, indent=4)
-    
+
     print("--- Model Packaging Complete ---")
     print(f"Model saved to:    {model_name}.json")
     print(f"Metadata saved to: {metadata_filename}")

@@ -1,6 +1,7 @@
 [tool.ruff]
 # Target production directories
 src = ["src", "scripts"]
+line-length = 120
 
 # Exclude research and infrastructure files from strict linting
 exclude = [

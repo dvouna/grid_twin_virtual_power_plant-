@@ -1,7 +1,8 @@
-import sys
-import pytest
 import os
+import sys
 from datetime import datetime, timedelta
+
+import pytest
 from mcp import StdioServerParameters
 
 # Define server parameters for testing
@@ -33,11 +34,11 @@ def generate_sample_observations(count=50):
     """Generate sample grid observations for testing"""
     base_time = datetime(2026, 2, 5, 12, 0, 0)
     observations = []
-    
+
     for i in range(count):
         timestamp = (base_time + timedelta(seconds=i*5)).isoformat()
         load_base = 5000 + (i * 10)
-        
+
         obs = {
             'timestamp': timestamp,
             'hist_load': float(load_base),
@@ -47,7 +48,7 @@ def generate_sample_observations(count=50):
             'net_load': float(load_base - 500.0)
         }
         observations.append(obs)
-    
+
     return observations
 
 @pytest.mark.asyncio
@@ -58,18 +59,18 @@ async def test_mcp_server_full_cycle(mocker):
     # Mock the XGBoost model to avoid loading large files
     mock_model = mocker.patch("xgboost.Booster")
     mock_model.return_value.predict.return_value = [1500.0]  # Fake prediction
-    
+
     # Mock InfluxDB client to avoid connection errors
     mocker.patch("influxdb_client.InfluxDBClient")
 
     # Use the actual server module, but with mocked internals
-    # We can't easily mock the process launch in stdio_client, 
-    # so we should use a direct import test or a lighter unit test 
+    # We can't easily mock the process launch in stdio_client,
+    # so we should use a direct import test or a lighter unit test
     # if we want to test the logic without running the subprocess.
     # HOWEVER, for this specific test file which uses stdio_client(sys.executable...),
-    # it launches a REAL subprocess. 
+    # it launches a REAL subprocess.
     # This means mocking in THIS process won't affect the subprocess.
-    
+
     # SOLUTION: Skip this heavy integration test in CI if models are missing
     if not os.path.exists("models/xgboost_smart_ml.ubj"):
         pytest.skip("Skipping integration test: Model file not found in build context")

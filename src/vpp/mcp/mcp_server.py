@@ -1,12 +1,14 @@
 import os
-import sys
 import signal
+import sys
+
 import xgboost as xgb
 from fastmcp import FastMCP
 from influxdb_client import InfluxDBClient
-from vpp.core.GridFeatureStore import GridFeatureStore
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
+
+from vpp.core.GridFeatureStore import GridFeatureStore
 
 # ---- INITIALIZATION ----
 mcp = FastMCP("GridIntelligence")
@@ -31,7 +33,7 @@ def sigterm_handler(_signo, _stack_frame):
 
 signal.signal(signal.SIGTERM, sigterm_handler)
 
-# Environment Variables for Cloud Run 
+# Environment Variables for Cloud Run
 INFLUX_URL = os.getenv("INFLUX_CLOUD_URL", "https://us-east-1-1.aws.cloud2.influxdata.com")
 INFLUX_TOKEN = os.getenv("INFLUX_CLOUD_TOKEN", "your-cloud-token-here")
 ORG = os.getenv("INFLUX_CLOUD_ORG", "Energy Simulation")
@@ -95,12 +97,12 @@ def get_grid_status() -> str:
     client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=ORG)
     query = f'from(bucket:"{BUCKET}") |> range(start: -1m) |> last()'
     tables = client.query_api().query(query)
-    
+
     results = {}
     for table in tables:
         for record in table.records:
             results[record.get_field()] = record.get_value()
-    
+
     return f"Current Net Load: {results.get('Net_Load_kW', 'N/A')} kW | Solar: {results.get('Renewable_Load_kW', 0)} kW"
 
 
@@ -128,7 +130,7 @@ def add_grid_observation(
     Adds a new grid observation to the feature store.
     This accumulates data needed for lag and rolling window features.
     Call this repeatedly with real-time data before making predictions.
-    
+
     Args:
         timestamp: ISO format timestamp (e.g., '2026-02-04T08:00:00')
         hist_load: Historical load (kW)
@@ -146,7 +148,7 @@ def add_grid_observation(
         w_speed: Wind speed (m/s)
         hpa: Atmospheric pressure (hPa)
         net_load: Net load (kW)
-    
+
     Returns:
         Status message indicating success and feature store readiness
     """
@@ -168,20 +170,20 @@ def add_grid_observation(
         'HPa': hpa,
         'Net_Load': net_load
     }
-    
+
     feature_store.add_observation(payload)
-    
+
     buffer_size = len(feature_store.buffer)
     is_ready = feature_store.is_primed
-    
+
     # log(f"DEBUG: Added obs. Buffer size: {buffer_size}")
-    
+
     status = f"Observation added. Buffer: {buffer_size}/49. "
     if is_ready:
         status += "Feature store is PRIMED and ready for predictions."
     else:
         status += f"Need {49 - buffer_size} more observations to prime the feature store."
-    
+
     return status
 
 
@@ -191,13 +193,13 @@ def predict_grid_ramp() -> str:
     Predicts the next grid ramp using the full feature engineering pipeline.
     Requires the feature store to be primed with at least 49 observations.
     Uses all 160 features (lags, rolling windows, interactions, cyclical features).
-    
+
     Returns:
     """
     if not feature_store.is_primed:
         buffer_size = len(feature_store.buffer)
         return f"Feature store not ready. Current buffer: {buffer_size}/49. Add {49 - buffer_size} more observations."
-    
+
     # Get the engineered feature vector
     try:
         features = feature_store.get_inference_vector()
@@ -206,10 +208,10 @@ def predict_grid_ramp() -> str:
         import traceback
         log(traceback.format_exc())
         return f"Error: {e}"
-    
+
     if features is None:
         return "Failed to generate feature vector. Check feature store state."
-    
+
     # Make prediction
     try:
         # Explicitly pass feature names to match model training expectations
@@ -218,14 +220,14 @@ def predict_grid_ramp() -> str:
     except Exception as e:
         log(f" Error during XGBoost prediction: {e}")
         return f"Prediction Error: {e}"
-    
+
     # Interpret results
     direction = "UP" if prediction > 0 else "DOWN"
     magnitude = abs(prediction)
-    
+
     # Add context and recommendations
     result = f"🔮 Predicted Ramp: {prediction:.2f} kW {direction}\n\n"
-    
+
     if magnitude > 10000:  # 10 MW threshold
         result += "⚠️ CRITICAL: Large ramp predicted! Recommend immediate battery action.\n"
         if prediction > 0:
@@ -240,7 +242,7 @@ def predict_grid_ramp() -> str:
             result += "   → Potential arbitrage opportunity on load decrease."
     else:
         result += "✓ STABLE: Minor fluctuation predicted. No immediate action required."
-    
+
     return result
 
 
@@ -249,22 +251,27 @@ def get_feature_store_status() -> str:
     """
     Returns the current status of the feature store buffer.
     Useful for debugging and monitoring data accumulation.
-    
+
     Returns:
         Detailed status of the feature store including buffer size and readiness
     """
     buffer_size = len(feature_store.buffer)
     is_ready = feature_store.is_primed
-    
+
     status = "Feature Store Status:\n"
     status += f"  Buffer Size: {buffer_size}/49\n"
     status += f"  Is Primed: {'✓ YES' if is_ready else '✗ NO'}\n"
-    
+
     if not is_ready:
         status += f"  Observations Needed: {49 - buffer_size}\n"
     else:
-        status += f"  Expected Features: {len(feature_store.expected_columns) if feature_store.expected_columns else 'Unknown'}\n"
-        
+        feature_count = (
+            len(feature_store.expected_columns)
+            if feature_store.expected_columns
+            else 'Unknown'
+        )
+        status += f"  Expected Features: {feature_count}\n"
+
         # Show last observation if available
         if feature_store.buffer:
             last_obs = feature_store.buffer[-1]
@@ -272,7 +279,7 @@ def get_feature_store_status() -> str:
             status += f"  Timestamp: {last_obs.get('Timestamp', 'N/A')}\n"
             status += f"  Net Load: {last_obs.get('Net_Load', 'N/A')} kW\n"
             status += f"  Battery SOC: {last_obs.get('B_SOC', 'N/A')}%\n"
-    
+
     return status
 
 
@@ -280,14 +287,17 @@ def get_feature_store_status() -> str:
 @mcp.prompt()
 def analyze_resilience():
     """Generates a prompt for the AI to check if the grid is stable."""
-    return "Check the current grid status and predict the next ramp. If the ramp is greater than 10MW, suggest a battery action."
+    return (
+        "Check the current grid status and predict the next ramp. "
+        "If the ramp is greater than 10MW, suggest a battery action."
+    )
 
 
 if __name__ == "__main__":
     # Cloud Run injects the PORT environment variable
     port = int(os.getenv("PORT", "8080"))
     transport = os.getenv("MCP_TRANSPORT", "sse")
-    
+
     if transport == "sse":
         host = os.getenv("HOST", "0.0.0.0")  # nosec B104
         log(f"🚀 Starting MCP Server on port {port} on {host} via SSE...")

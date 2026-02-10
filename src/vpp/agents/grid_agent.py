@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
@@ -10,6 +11,7 @@ sys.path.append(os.path.join(BASE_DIR, "src"))
 
 from vpp.agents.strategies.vpp_default_strategy import VPPDefaultStrategy  # noqa: E402
 
+
 class GridAgent:
     """
     Autonomous Grid Agent that orchestrates VPP operations via MCP.
@@ -17,7 +19,7 @@ class GridAgent:
     def __init__(self, server_script=None, strategy=None):
         if server_script is None:
             server_script = os.path.join(BASE_DIR, "src", "vpp", "mcp", "mcp_server.py")
-        
+
         self.server_params = StdioServerParameters(
             command=sys.executable,
             args=[server_script],
@@ -32,12 +34,12 @@ class GridAgent:
                 async with ClientSession(read, write) as session:
                     self.session = session
                     await session.initialize()
-                    
+
                     print("="*50)
                     print("🤖 GRID AGENT ONLINE")
                     print("="*50)
                     print(f"Connected to MCP Server: {self.server_params.args[0]}")
-                    
+
                     while True:
                         await self.think()
                         # Sleep for simulation interval
@@ -50,7 +52,7 @@ class GridAgent:
     async def think(self):
         """The core decision-making cycle."""
         print(f"\n[THINK] {asyncio.get_event_loop().time():.2f}")
-        
+
         try:
             # 1. SENSE
             status = await self.session.read_resource("grid://current-status")
@@ -65,7 +67,7 @@ class GridAgent:
             # 3. ANALYZE (Strategy)
             fs_status = await self.session.call_tool("get_feature_store_status", arguments={})
             fs_text = fs_status.content[0].text
-            
+
             actions = self.strategy.evaluate(status_text, pred_text, fs_text)
 
             # 4. ACT

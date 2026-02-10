@@ -1,5 +1,6 @@
 import os
 import time
+
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
@@ -25,13 +26,13 @@ def calculate_finances(ramp_rate, p_res, action):
     potential_penalty = 0.0
     if abs(ramp_rate) > 20: # Our threshold for "Instability"
         # MW * (1/60 hours) * Price
-        potential_penalty = abs(ramp_rate) * PENALTY_RATE_PER_kWH 
+        potential_penalty = abs(ramp_rate) * PENALTY_RATE_PER_kWH
 
     # 2. Mitigation Cost (The cost of our prescribed action)
     mitigation_cost = p_res * GAS_PEAKER_OP_COST
 
     # 3. Net Savings
-    # If we mitigated a penalty, we saved money. 
+    # If we mitigated a penalty, we saved money.
     # If the system is stable, savings are 0.
     net_savings = potential_penalty - mitigation_cost if p_res > 0 else 0.0
 
@@ -42,7 +43,7 @@ def run_simulator():
     query_api = client.query_api()
     write_api = client.write_api(write_options=SYNCHRONOUS)
 
-    print("Grid Response Actor is online. Waiting for commands...") 
+    print("Grid Response Actor is online. Waiting for commands...")
 
     try:
         while True:
@@ -51,9 +52,9 @@ def run_simulator():
                       |> range(start: -5m) \
                       |> filter(fn: (r) => r["_measurement"] == "ml_predictions") \
                       |> last()'
-            
+
             tables = query_api.query(query)
-            
+
             # Extract data from the result
             current_data = {}
             for table in tables:
@@ -90,7 +91,7 @@ def run_simulator():
                 .field("mitigation_cost", cost) \
                 .field("net_savings", savings) \
                 .tag("asset_active", "NONE" if p_res == 0 else action)
-            
+
             write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=point)
             # log(f"DEBUG: Data written to InfluxDB Cloud") # Optional: uncomment for verbose logging
 

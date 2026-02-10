@@ -1,4 +1,5 @@
 import json
+
 import numpy as np
 import pandas as pd
 
@@ -94,4 +95,3 @@ if __name__ == "__main__":
 
     pred = predict_next(df_raw, model, config)
     print("Predicted Net Load for next hour:", pred)
-    

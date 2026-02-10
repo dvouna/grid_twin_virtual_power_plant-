@@ -1,6 +1,8 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
+
 from vpp.ml.inference import prepare_features
+
 
 def test_prepare_features_basic():
     # Setup dummy data
@@ -15,7 +17,7 @@ def test_prepare_features_basic():
         'day_of_week': np.random.randint(0, 7, 50)
     }
     df = pd.DataFrame(data)
-    
+
     config = {
         "lags": [1, 2],
         "rolling_windows": [3],
@@ -23,10 +25,10 @@ def test_prepare_features_basic():
         "use_cyclical": True,
         "feature_list": ["hour_sin", "hour_cos", "net_load_lag_1"]
     }
-    
+
     # Run function
     df_feat = prepare_features(df, config)
-    
+
     # Verify
     assert not df_feat.empty
     assert "net_load_lag_1" in df_feat.columns

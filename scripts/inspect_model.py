@@ -1,4 +1,5 @@
 import xgboost as xgb
+
 model = xgb.XGBRegressor()
 model.load_model("xgboost_smart_ml.ubj")
 booster = model.get_booster()

@@ -1,6 +1,7 @@
-import sys
-import os
 import json
+import os
+import sys
+
 from confluent_kafka import Consumer
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
@@ -31,7 +32,7 @@ INFLUX_BUCKET = os.getenv("INFLUX_CLOUD_BUCKET", "energy")
 
 # Ramp Rate Thresholds (MW/min)
 # If power drops faster than this, we trigger an alarm.
-CRITICAL_DROP_THRESHOLD = -50  
+CRITICAL_DROP_THRESHOLD = -50
 WARNING_DROP_THRESHOLD = -20
 
 # --- 2. INITIALIZE PREDICTOR ---
@@ -67,7 +68,7 @@ def run_ml_consumer():
 
     try:
         while True:
-            msg = consumer.poll(10.0) # Wait 10 seconds for a message 
+            msg = consumer.poll(10.0) # Wait 10 seconds for a message
             if msg is None:
                 continue
             if msg.error():
@@ -76,24 +77,24 @@ def run_ml_consumer():
 
             # A. Parse Data
             payload = json.loads(msg.value().decode('utf-8'))
-            
+
             # B. Add to State and Predict
             predictor.add_observation(payload)
             prediction_30min_change = predictor.predict()
-            
+
             # C. Check if we have enough data (buffer is primed)
             if prediction_30min_change is None:
                 cur, total = predictor.buffer_info
                 print(f"⌛ Priming buffer... ({cur}/{total})")
                 continue
-            
+
             # D. Metrics for Influx
             solar = float(payload.get('Solar_kw', 0))
             wind = float(payload.get('Wind_kw', 0))
-            net_load = float(payload.get('Net_Load', 0)) 
+            net_load = float(payload.get('Net_Load', 0))
             elec_load = float(payload.get('Elec_Load', 0))
             ren_load = solar + wind
-            
+
             # --- DECISION ENGINE ---
             severity, action = prescribe_action(prediction_30min_change)
 
@@ -107,10 +108,10 @@ def run_ml_consumer():
                 .field("Predicted_30min_Change", prediction_30min_change) \
                 .tag("severity", severity) \
                 .tag("recommended_action", action)
-            
+
             write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=point)
             # log(f"DEBUG: Data written to InfluxDB Cloud") # Optional: uncomment for verbose logging
-            
+
             if severity != "NORMAL":
                 print(f"{severity}: Predicted Change {prediction_30min_change:.2f} | Action: {action}")
             else:
